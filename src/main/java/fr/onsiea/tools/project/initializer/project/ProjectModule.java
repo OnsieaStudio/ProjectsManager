@@ -1,7 +1,6 @@
 package fr.onsiea.tools.project.initializer.project;
 
 import fr.onsiea.tools.project.initializer.project.settings.MavenSettings;
-import fr.onsiea.tools.project.initializer.project.settings.pom.PomManager;
 import fr.onsiea.tools.project.initializer.project.settings.pom.details.PomDetailsBuilder;
 import fr.onsiea.tools.project.initializer.project.settings.resources.EnumResourceScope;
 import fr.onsiea.tools.project.initializer.project.settings.resources.EnumResourceType;
@@ -14,6 +13,7 @@ import fr.onsiea.utils.stringbuilder.StringBuilderCache;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Delegate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,13 +22,13 @@ import java.util.List;
 @AllArgsConstructor
 public class ProjectModule
 {
-	private final ProjectModule    parent;
-	private final String           name;
-	private final String           path;
-	private final ProjectModule[]  modules;
-	private final ProjectModule[]  dependencies;
-	private final ResourcesManager resourcesManager;
-	private final MavenSettings    mavenSettings;
+	private final           ProjectModule    parent;
+	private final           String           name;
+	private final           String           path;
+	private final           ProjectModule[]  modules;
+	private final           ProjectModule[]  dependencies;
+	private final @Delegate ResourcesManager resourcesManager;
+	private final @Delegate MavenSettings    mavenSettings;
 
 	public ProjectModule(ProjectModule parentIn, String nameIn, String pathIn, ProjectModule[] modulesIn, ProjectModule[] dependenciesIn, ResourcesManager resourcesManagerIn, MavenSettings.Builder mavenSettingsIn)
 	{
@@ -39,6 +39,16 @@ public class ProjectModule
 		dependencies     = dependenciesIn;
 		resourcesManager = resourcesManagerIn;
 		mavenSettings    = mavenSettingsIn.build(this);
+	}
+
+	public String firstName()
+	{
+		if (parent != null)
+		{
+			return parent.firstName();
+		}
+
+		return name;
 	}
 
 	public void show()
@@ -95,26 +105,16 @@ public class ProjectModule
 
 	public String filePath()
 	{
-		String filePath;
-
 		if (parent != null)
 		{
 			var parentPath = parent.filePath();
 			if (parentPath != null)
 			{
-				filePath = parentPath + (this.path != null ? "\\" : "") + (this.path != null ? this.path : "");
+				return parentPath + (this.path != null ? (path.endsWith("\\") ? "" : "\\") + this.path : "");
 			}
-			else
-			{
-				filePath = this.path;
-			}
-		}
-		else
-		{
-			filePath = this.path;
 		}
 
-		return filePath;
+		return this.path;
 	}
 
 	public final Resource resourceOf(EnumResourceType typeIn)
@@ -165,40 +165,18 @@ public class ProjectModule
 				continue;
 			}
 
-			resource.make(this);
+			var pathArray = resource.make(this);
+
+			if (pathArray != null && pathArray.length > 0)
+			{
+				loaded(resource, pathArray);
+			}
 		}
 
 		for (var module : modules)
 		{
 			module.runtime();
 		}
-	}
-
-	// Delegated
-
-	public String artifactId()
-	{
-		return mavenSettings.artifactId();
-	}
-
-	public String version()
-	{
-		return mavenSettings.version();
-	}
-
-	public PomManager pomManager()
-	{
-		return mavenSettings.pomManager();
-	}
-
-	public String prefix()
-	{
-		return mavenSettings.prefix();
-	}
-
-	public String groupId()
-	{
-		return mavenSettings.groupId();
 	}
 
 	@Getter
@@ -224,30 +202,6 @@ public class ProjectModule
 
 			resourcesManager = new ResourcesManager.Builder();
 			mavenSettings    = new MavenSettings.Builder(artifactIdIn, this);
-		}
-
-		public String filePath()
-		{
-			String filePath;
-
-			if (parent != null)
-			{
-				var parentPath = parent.filePath();
-				if (parentPath != null)
-				{
-					filePath = parentPath + (this.path != null ? "\\" : "") + (this.path != null ? this.path : "");
-				}
-				else
-				{
-					filePath = this.path;
-				}
-			}
-			else
-			{
-				filePath = this.path;
-			}
-
-			return filePath;
 		}
 
 		/**
@@ -562,7 +516,6 @@ public class ProjectModule
 		}
 
 		// Delegated
-
 
 		public Resource.Builder makeResource(EnumResourceType typeIn)
 		{
