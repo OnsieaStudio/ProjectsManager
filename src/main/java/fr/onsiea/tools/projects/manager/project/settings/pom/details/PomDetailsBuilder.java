@@ -1,10 +1,10 @@
-package fr.onsiea.tools.project.initializer.project.settings.pom.details;
+package fr.onsiea.tools.projects.manager.project.settings.pom.details;
 
-import fr.onsiea.tools.project.initializer.project.ProjectModule;
-import fr.onsiea.tools.project.initializer.project.settings.pom.PomManager;
-import fr.onsiea.tools.project.initializer.project.settings.pom.PomManager.IChild;
-import fr.onsiea.utils.function.IOIFunction;
-import fr.onsiea.utils.string.StringUtils;
+import fr.onsiea.tools.projects.manager.project.ProjectModule;
+import fr.onsiea.tools.projects.manager.project.settings.pom.PomManager;
+import fr.onsiea.tools.projects.manager.project.settings.pom.PomManager.IChild;
+import fr.onsiea.tools.utils.function.IOIFunction;
+import fr.onsiea.tools.utils.string.StringUtils;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,42 +18,28 @@ public final class PomDetailsBuilder implements IChild<PomDetailsBuilder>
 	private final   PomDetailsBuilder                previous;
 	private final   PomManager.Builder               pomManager;
 	private final   String                           id;
-	private final   Map<String, PomDetailsBuilder>   childMap;
 	private @Setter String                           name;
-	private @Setter EnumTagState                     tagState;
-	private @Setter String                           startTagStart;
-	private @Setter String                           startTagEnd;
-	private @Setter String                           startTagContent;
-	private @Setter String                           endTagContent;
-	private @Setter String                           endTagStart;
-	private @Setter String                           endTagEnd;
-	private         Map<String, String>              shortcuts;
-	private @Setter String                           details;
-	private @Setter String                           betweenTag;
-	private @Setter String                           betweenChild;
-	private         IOIFunction<String, IPomDetails> before;
-	private         IOIFunction<String, IPomDetails> after;
+	public final    Map<String, PomDetailsBuilder>   childMap;
 	private @Setter boolean                          replaceExisting;
 	private @Setter boolean                          canHadMultiples;
 	private @Setter boolean                          addIfEmpty;
 	private @Setter int                              index;
 	private @Setter int                              level;
+	private @Setter EnumTagState                     tagState;
+	private         String                           startTagStart;
+	private         String                           startTagEnd;
+	private         String                           startTagContent;
+	private         String                           endTagContent;
+	private         String                           endTagStart;
+	private         String                           endTagEnd;
+	private final   Map<String, String>              shortcuts;
+	private         String                           details;
+	private @Setter String                           betweenTag;
+	private @Setter String                           betweenChild;
+	private         IOIFunction<String, IPomDetails> before;
+	private         IOIFunction<String, IPomDetails> after;
 	private         IPomDetails                      built;
-
-	public PomDetailsBuilder(ProjectModule.Builder moduleIn, PomManager.Builder pomManagerIn, String idIn)
-	{
-		module          = moduleIn;
-		previous        = null;
-		pomManager      = pomManagerIn;
-		id              = idIn;
-		name            = id;
-		tagState        = EnumTagState.UNDEFINED;
-		childMap        = new LinkedHashMap<>();
-		index           = pomManagerIn.childCount();
-		replaceExisting = false;
-		canHadMultiples = false;
-		addIfEmpty      = false;
-	}
+	private         boolean                          isBlocTag;
 
 	public PomDetailsBuilder(ProjectModule.Builder moduleIn, PomDetailsBuilder previousIn, PomManager.Builder pomManagerIn, String idIn)
 	{
@@ -62,13 +48,61 @@ public final class PomDetailsBuilder implements IChild<PomDetailsBuilder>
 		pomManager      = pomManagerIn;
 		id              = idIn;
 		name            = id;
-		tagState        = EnumTagState.UNDEFINED;
 		childMap        = new LinkedHashMap<>();
 		shortcuts       = new LinkedHashMap<>();
 		index           = pomManagerIn.childCount();
 		replaceExisting = false;
 		canHadMultiples = false;
 		addIfEmpty      = false;
+		tagState        = EnumTagState.UNDEFINED;
+	}
+
+	public PomDetailsBuilder copy()
+	{
+		return copy(previous != null ? previous : pomManager());
+	}
+
+	public PomDetailsBuilder copy(IChild<?> intoIn)
+	{
+		int i   = 0;
+		var _id = id + "-" + i;
+		i++;
+		while (containsChild(_id))
+		{
+			_id = id + "-" + i;
+
+			i++;
+		}
+
+		var builder = intoIn.pomDetails(_id).name(this.name).replaceExisting(replaceExisting).canHadMultiples(canHadMultiples).addIfEmpty(addIfEmpty)
+				.tagState(tagState).startTagStart(startTagStart).startTagEnd(startTagEnd)
+				.startTagContent(startTagContent).endTagContent(endTagContent).endTagStart(endTagStart).endTagEnd(endTagEnd)
+				.betweenTag(betweenTag).betweenChild(betweenChild);
+
+		for (var child : childMap.values())
+		{
+			child.copy(builder);
+		}
+
+		return builder;
+	}
+
+	public boolean isEmpty()
+	{
+		if (details != null && !StringUtils.isBlank(details))
+		{
+			return false;
+		}
+
+		for (var child : childMap.values())
+		{
+			if (!child.isEmpty())
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	public PomDetailsBuilder afterFunction(IOIFunction<String, IPomDetails> functionIn)
@@ -131,11 +165,9 @@ public final class PomDetailsBuilder implements IChild<PomDetailsBuilder>
 	}
 
 	@Override
-	public PomDetailsBuilder put(String idIn, PomDetailsBuilder builderIn)
+	public void put(String idIn, PomDetailsBuilder builderIn)
 	{
 		childMap.put(idIn, builderIn);
-
-		return this;
 	}
 
 	@Override
@@ -152,6 +184,7 @@ public final class PomDetailsBuilder implements IChild<PomDetailsBuilder>
 		{
 			betweenChild = " ";
 		}
+		isBlocTag = false;
 
 		return this;
 	}
@@ -164,6 +197,7 @@ public final class PomDetailsBuilder implements IChild<PomDetailsBuilder>
 		{
 			betweenChild = "\n";
 		}
+		isBlocTag = true;
 
 		return this;
 	}
@@ -388,7 +422,7 @@ public final class PomDetailsBuilder implements IChild<PomDetailsBuilder>
 				betweenTag = "\n";
 			}
 
-			built = new PomTag(pomManager.build(), name, childArray, betweenChild, before, details, after, replaceExisting, addIfEmpty, index, level, startTagStart, startTagContent, startTagEnd, endTagStart, endTagContent, endTagEnd, betweenTag);
+			built = new PomTag(pomManager.build(), name, childArray, betweenChild, before, details, after, replaceExisting, addIfEmpty, index, level, startTagStart, startTagContent, startTagEnd, endTagStart, endTagContent, endTagEnd, betweenTag, isBlocTag);
 		}
 		else
 		{

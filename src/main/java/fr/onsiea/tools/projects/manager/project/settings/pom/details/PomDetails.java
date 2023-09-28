@@ -1,7 +1,7 @@
-package fr.onsiea.tools.project.initializer.project.settings.pom.details;
+package fr.onsiea.tools.projects.manager.project.settings.pom.details;
 
-import fr.onsiea.tools.project.initializer.project.settings.pom.PomManager;
-import fr.onsiea.utils.function.IOIFunction;
+import fr.onsiea.tools.projects.manager.project.settings.pom.PomManager;
+import fr.onsiea.tools.utils.function.IOIFunction;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

@@ -1,8 +1,8 @@
-package fr.onsiea.tools.project.initializer.project.settings;
+package fr.onsiea.tools.projects.manager.project.settings;
 
-import fr.onsiea.tools.project.initializer.project.ProjectModule;
-import fr.onsiea.tools.project.initializer.project.settings.pom.PomManager;
-import fr.onsiea.utils.stringbuilder.StringBuilderCache;
+import fr.onsiea.tools.projects.manager.project.ProjectModule;
+import fr.onsiea.tools.projects.manager.project.settings.pom.PomManager;
+import fr.onsiea.tools.utils.stringbuilder.StringBuilderCache;
 import lombok.Getter;
 import lombok.Setter;
 

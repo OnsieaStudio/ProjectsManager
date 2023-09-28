@@ -1,4 +1,4 @@
-package fr.onsiea.tools.project.initializer.project.settings.pom.details;
+package fr.onsiea.tools.projects.manager.project.settings.pom.details;
 
 public interface IPomDetails
 {

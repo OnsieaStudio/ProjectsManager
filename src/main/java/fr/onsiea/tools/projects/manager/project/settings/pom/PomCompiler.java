@@ -1,7 +1,7 @@
-package fr.onsiea.tools.project.initializer.project.settings.pom;
+package fr.onsiea.tools.projects.manager.project.settings.pom;
 
-import fr.onsiea.tools.project.initializer.project.settings.pom.PomManager.IChild;
-import fr.onsiea.utils.string.StringUtils;
+import fr.onsiea.tools.projects.manager.project.settings.pom.PomManager.IChild;
+import fr.onsiea.tools.utils.string.StringUtils;
 
 import java.util.regex.Pattern;
 
@@ -35,8 +35,12 @@ public class PomCompiler
 				var group = matcher.group();
 				var name  = group.replace("</", "").replace("<", "").replace(">", "");
 
-				boolean oneLine = group.matches("^<" + Pattern.quote("?") + ".*" + Pattern.quote("?") + ">$");
-				if (!oneLine)
+				if (group.matches("^<" + Pattern.quote("?") + ".*" + Pattern.quote("?") + ">$") || group.matches("^<" + Pattern.quote("!--") + ".*" + Pattern.quote("--") + ">$"))
+				{
+					current.pomLineTag().after("").startTag("").details(group.replaceAll("\r", "").replaceAll("\n", "")).endTag("").betweenTag("").betweenChild("").before("");
+					last = matcher.end();
+				}
+				else
 				{
 					if (current == null)
 					{
@@ -46,7 +50,7 @@ public class PomCompiler
 					String details;
 					if (last != matcher.start())
 					{
-						details = line.substring(last, start);
+						details = line.substring(last, start).replaceAll("\n", "").replaceAll("\r", "").replaceAll(System.lineSeparator(), "");
 						if (!(details.isBlank() || details.isEmpty() || details.matches("($|[ \t\r\n ]|^)+")) && current.currentChild() != null)
 						{
 							current.currentChild().details(details);
@@ -68,8 +72,7 @@ public class PomCompiler
 						{
 							current = current.currentChild().previous();
 						}
-
-						if (current == null)
+						else
 						{
 							current = builderIn;
 						}
@@ -77,7 +80,7 @@ public class PomCompiler
 					else
 					{
 						lastName = name;
-						current  = current.pomDetails(name);
+						current = current.pomDetails(name);
 					}
 				}
 				last = matcher.end();

@@ -1,20 +1,20 @@
-package fr.onsiea.tools.project.initializer.project.settings.pom;
+package fr.onsiea.tools.projects.manager.project.settings.pom;
 
-import fr.onsiea.tools.project.initializer.project.settings.pom.details.IPomDetails;
-import fr.onsiea.tools.project.initializer.project.settings.pom.details.PomDetails;
-import fr.onsiea.tools.project.initializer.project.settings.pom.details.PomTag;
-import fr.onsiea.utils.string.StringUtils;
-import fr.onsiea.utils.stringbuilder.CachedStringBuilder;
-import fr.onsiea.utils.stringbuilder.StringBuilderCache;
+import fr.onsiea.tools.projects.manager.project.settings.pom.details.IPomDetails;
+import fr.onsiea.tools.projects.manager.project.settings.pom.details.PomDetails;
+import fr.onsiea.tools.projects.manager.project.settings.pom.details.PomTag;
+import fr.onsiea.tools.utils.string.StringUtils;
+import fr.onsiea.tools.utils.stringbuilder.CachedStringBuilder;
+import fr.onsiea.tools.utils.stringbuilder.StringBuilderCache;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class PomFormatter
 {
-	private final Map<Integer, IPomDetails> previousLevels;
 	private       CachedStringBuilder       currentStringBuilder;
 	private       int                       tabs;
+	private final Map<Integer, IPomDetails> previousLevels;
 
 	public PomFormatter()
 	{
@@ -24,9 +24,9 @@ public class PomFormatter
 	public final void reset()
 	{
 		currentStringBuilder.free();
-		previousLevels.clear();
 		tabs                 = 0;
 		currentStringBuilder = null;
+		previousLevels.clear();
 	}
 
 	public final String formatAll(IPomDetails[] childArray)
@@ -98,7 +98,7 @@ public class PomFormatter
 				}
 			}
 
-			if (!matcher.group().startsWith("<?") && !matcher.group().startsWith("</"))
+			if (!matcher.group().startsWith("<?") && !matcher.group().startsWith("</") && !matcher.group().startsWith("<!--"))
 			{
 				tabs++;
 			}
@@ -135,7 +135,17 @@ public class PomFormatter
 		}
 		else
 		{
-			previousLevels.remove(detailsIn.level());
+			var diff = previousLevels.size() - detailsIn.level();
+
+			if (diff > 0)
+			{
+				var lastLevel = previousLevels.size();
+				for (int i = 0; i < diff; i++)
+				{
+					previousLevels.remove(lastLevel - i);
+				}
+			}
+
 			previousLevels.put(detailsIn.level(), detailsIn);
 		}
 
@@ -144,11 +154,13 @@ public class PomFormatter
 
 	public final boolean formatTag(PomTag pomDetailsIn)
 	{
-		StringBuilderCache.appendAllNonNull(currentStringBuilder, pomDetailsIn.startTagStart(), pomDetailsIn.startTagContent(), pomDetailsIn.startTagEnd(), pomDetailsIn.betweenTag());
+		StringBuilderCache.appendAllNonNull(currentStringBuilder, pomDetailsIn.startTagStart(), pomDetailsIn.startTagContent(), pomDetailsIn.startTagEnd());
 
+		StringBuilderCache.appendAllNonNull(currentStringBuilder, pomDetailsIn.betweenTag());
 		var hasChanged = formatDetails(pomDetailsIn);
 
 		StringBuilderCache.appendAllNonNull(currentStringBuilder, pomDetailsIn.endTagStart(), pomDetailsIn.endTagContent(), pomDetailsIn.endTagEnd());
+
 
 		return hasChanged;
 	}
@@ -163,7 +175,6 @@ public class PomFormatter
 		}
 
 		var lastLength = -1;
-		int i          = 0;
 		for (var child : pomDetailsIn.childArray())
 		{
 			lastLength = currentStringBuilder.length();
@@ -180,8 +191,6 @@ public class PomFormatter
 					currentStringBuilder.append(pomDetailsIn.betweenChild());
 				}
 			}
-
-			i++;
 		}
 
 		return changes > 0 || pomDetailsIn.addIfEmpty();

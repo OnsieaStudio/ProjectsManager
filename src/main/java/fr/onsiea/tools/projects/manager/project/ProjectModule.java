@@ -1,21 +1,20 @@
-package fr.onsiea.tools.project.initializer.project;
+package fr.onsiea.tools.projects.manager.project;
 
-import fr.onsiea.tools.project.initializer.project.settings.MavenSettings;
-import fr.onsiea.tools.project.initializer.project.settings.pom.details.PomDetailsBuilder;
-import fr.onsiea.tools.project.initializer.project.settings.resources.EnumResourceScope;
-import fr.onsiea.tools.project.initializer.project.settings.resources.EnumResourceType;
-import fr.onsiea.tools.project.initializer.project.settings.resources.Resource;
-import fr.onsiea.tools.project.initializer.project.settings.resources.Resource.IResourceFunction;
-import fr.onsiea.tools.project.initializer.project.settings.resources.ResourcesManager;
-import fr.onsiea.utils.string.StringUtils;
-import fr.onsiea.utils.stringbuilder.CachedStringBuilder;
-import fr.onsiea.utils.stringbuilder.StringBuilderCache;
+import fr.onsiea.tools.projects.manager.project.settings.MavenSettings;
+import fr.onsiea.tools.projects.manager.project.settings.pom.details.PomDetailsBuilder;
+import fr.onsiea.tools.project.initializer.project.settings.resources.*;
+import fr.onsiea.tools.projects.manager.project.settings.resources.Resource.IResourceFunction;
+import fr.onsiea.tools.projects.manager.project.settings.resources.*;
+import fr.onsiea.tools.utils.string.StringUtils;
+import fr.onsiea.tools.utils.stringbuilder.CachedStringBuilder;
+import fr.onsiea.tools.utils.stringbuilder.StringBuilderCache;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Delegate;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @Getter
@@ -41,6 +40,36 @@ public class ProjectModule
 		mavenSettings    = mavenSettingsIn.build(this);
 	}
 
+	public final int modulesCount()
+	{
+		return modules.length;
+	}
+
+	public final boolean hasModules()
+	{
+		return modules.length > 0;
+	}
+
+	public final ProjectModule[] modules()
+	{
+		return modules;
+	}
+
+	public final int dependenciesCount()
+	{
+		return dependencies.length;
+	}
+
+	public final boolean hasDependencies()
+	{
+		return dependencies.length > 0;
+	}
+
+	public final ProjectModule[] dependencies()
+	{
+		return dependencies;
+	}
+
 	public String firstName()
 	{
 		if (parent != null)
@@ -51,9 +80,11 @@ public class ProjectModule
 		return name;
 	}
 
-	public void show()
+	public ProjectModule show()
 	{
 		System.out.println(this);
+
+		return this;
 	}
 
 	public String toString()
@@ -105,16 +136,45 @@ public class ProjectModule
 
 	public String filePath()
 	{
+		var path = "";
 		if (parent != null)
 		{
 			var parentPath = parent.filePath();
 			if (parentPath != null)
 			{
-				return parentPath + (this.path != null ? (path.endsWith("\\") ? "" : "\\") + this.path : "");
+				path += parentPath;
+				if (path.endsWith("\\"))
+				{
+					path = path.substring(0, path.length() - 1);
+				}
+			}
+
+
+			return parentPath + (this.path != null ? (parentPath.endsWith("\\") || path.startsWith("\\") ? "" : "\\") + this.path : "");
+		}
+
+		if (this.path != null)
+		{
+			if (path != null)
+			{
+			}
+
+			if (this.path.startsWith("\\"))
+			{
+				path += this.path.substring(1, path.length());
+			}
+			else
+			{
+				path += this.path;
+			}
+
+			if (path.endsWith("\\"))
+			{
+				path = path.substring(0, path.length() - 1);
 			}
 		}
 
-		return this.path;
+		return path;
 	}
 
 	public final Resource resourceOf(EnumResourceType typeIn)
@@ -204,6 +264,16 @@ public class ProjectModule
 			mavenSettings    = new MavenSettings.Builder(artifactIdIn, this);
 		}
 
+		public int modulesCount()
+		{
+			return modules.size();
+		}
+
+		public Collection<Builder> modules()
+		{
+			return modules;
+		}
+
 		/**
 		 * @return current builder instance
 		 */
@@ -226,6 +296,17 @@ public class ProjectModule
 
 			return this;
 		}
+
+		public int dependenciesCount()
+		{
+			return dependencies.size();
+		}
+
+		public Collection<Builder> dependencies()
+		{
+			return dependencies;
+		}
+
 
 		/**
 		 * @return new builder instance
@@ -517,17 +598,39 @@ public class ProjectModule
 
 		// Delegated
 
-		public Resource.Builder makeResource(EnumResourceType typeIn)
+		public Resource.Builder add(EnumResourceType typeIn)
 		{
-			return resourcesManager.make(this, typeIn);
+			return resourcesManager.add(this, typeIn);
 		}
 
-		public Builder addResource(EnumResourceType typeIn, String basePathIn, IResourceFunction functionIn)
+		public Builder add(EnumResourceType typeIn, String basePathIn, IResourceFunction functionIn)
 		{
-			resourcesManager.add(typeIn, basePathIn, functionIn);
+			resourcesManager.add(this, typeIn, basePathIn, functionIn);
 
 			return this;
 		}
+
+		public Builder add(EnumResourceType typeIn, String basePathIn, IResourceFunction functionIn, boolean moduleConditionIn)
+		{
+			var builder = resourcesManager.add(this, typeIn, basePathIn, functionIn, moduleConditionIn);
+
+			return this;
+		}
+
+		public Builder add(EnumResourceType typeIn, String basePathIn, IResourceFunction functionIn, EnumResourceFilesCollisionAction actionIn)
+		{
+			var builder = resourcesManager.add(this, typeIn, basePathIn, functionIn, actionIn);
+
+			return this;
+		}
+
+		public Builder add(EnumResourceType typeIn, String basePathIn, IResourceFunction functionIn, EnumResourceFilesCollisionAction actionIn, boolean moduleConditionIn)
+		{
+			var builder = resourcesManager.add(this, typeIn, basePathIn, functionIn, actionIn, moduleConditionIn);
+
+			return this;
+		}
+
 
 		public Builder add(Resource resourceIn)
 		{
